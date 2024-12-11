@@ -1,0 +1,205 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $json.blocks[0].elements[0].elements[0].text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        400,
+        -40
+      ],
+      "id": "17556219-d869-40c7-b4e6-fe2394991480",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openchat/openchat-7b:free",
+        "options": {
+          "baseURL": "https://openrouter.ai/api/v1"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        320,
+        180
+      ],
+      "id": "4a4471fb-982d-4b1b-aa5d-f6bc6360aad4",
+      "name": "OpenRouter Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "N8D2ftJjZ6wtKuXt",
+          "name": "OpenRouter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "sessionId1"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        500,
+        180
+      ],
+      "id": "8231caa7-07d8-412d-9e23-b86b9bcba29a",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C084EN4RZDK",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "96204f05-a212-4d47-ae28-a5d5007f57a8",
+      "name": "Slack Trigger",
+      "webhookId": "a1b6a5c5-6022-4a21-856e-2ea35873ba29",
+      "credentials": {
+        "slackApi": {
+          "id": "L7ga5Ch8acrHoGnL",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C084EN4RZDK",
+          "mode": "id"
+        },
+        "text": "={{ $json.output }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        840,
+        -40
+      ],
+      "id": "7c20b6a2-3641-4699-9850-ebf1fadd85d6",
+      "name": "Slack",
+      "webhookId": "47936882-cc99-44f2-a923-380f150a6dc3",
+      "credentials": {
+        "slackApi": {
+          "id": "L7ga5Ch8acrHoGnL",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7bc51d2f-e6ea-44c7-ab43-da6f51e0902e",
+              "leftValue": "={{ $json.user }}",
+              "rightValue": "U0842C9GGSW",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        0
+      ],
+      "id": "a2cb0578-a6e9-485e-a0aa-e1bf3cb9aa90",
+      "name": "Filter"
+    }
+  ],
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
