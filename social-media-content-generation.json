@@ -1,0 +1,313 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "d9d09765-0ac4-4e4a-aebe-8913212e0476",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-3.5-turbo",
+        "options": {
+          "baseURL": "https://openrouter.ai/api/v1"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        120,
+        220
+      ],
+      "id": "53aaacb9-a16f-41d7-8281-8ff1584f63db",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "oRcP3VX9DoM8EVI5",
+          "name": "OpenRouter Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "sessionId"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        260,
+        220
+      ],
+      "id": "5c6e4e10-16d4-43bf-8737-72a887558f6a",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1VRiSPt9ZvKH5TTAUN5jN6HayKekEZrAIzH9cFa62yqc",
+          "mode": "list",
+          "cachedResultName": "social-media-planner",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VRiSPt9ZvKH5TTAUN5jN6HayKekEZrAIzH9cFa62yqc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Arkusz1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VRiSPt9ZvKH5TTAUN5jN6HayKekEZrAIzH9cFa62yqc/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -100,
+        0
+      ],
+      "id": "04408371-b56c-40b3-bed6-3a50d38323f1",
+      "name": "FetchTopics",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hI8bDA8G1Avxobgc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1VRiSPt9ZvKH5TTAUN5jN6HayKekEZrAIzH9cFa62yqc",
+          "mode": "list",
+          "cachedResultName": "social-media-planner",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VRiSPt9ZvKH5TTAUN5jN6HayKekEZrAIzH9cFa62yqc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Arkusz1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VRiSPt9ZvKH5TTAUN5jN6HayKekEZrAIzH9cFa62yqc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Facebook": "={{ $json.item.Facebook }}",
+            "Topic": "={{ $json.topic }}",
+            "X": "={{ $json.item.Twitter }}",
+            "LinkedIn": "={{ $json.item.LinkedIn }}",
+            "Instagram": "={{ $json.item.Instagram }}"
+          },
+          "matchingColumns": [
+            "Topic"
+          ],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Target Audience",
+              "displayName": "Target Audience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Additional Instructions",
+              "displayName": "Additional Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "X",
+              "displayName": "X",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LinkedIn",
+              "displayName": "LinkedIn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Facebook",
+              "displayName": "Facebook",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Instagram",
+              "displayName": "Instagram",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        680,
+        0
+      ],
+      "id": "2aedb8a3-0c3f-4ec9-b7c0-fb47a28f1de8",
+      "name": "Update with content",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hI8bDA8G1Avxobgc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Input data: You are given the data in the following format: Topic | Target Audience | Additional Instructions. \n\nInstruction: Write a short post about the given topic while keeping in mind it should be focused on addressing the target audience and whatever aspects of the topic the target audience might be most invested in. Use additional instructions for further profiling the post content. \n\nExpected output: Provide 4 responses, each tailored to a different social media platform, its standards, conventions and typical manner (like use of emojis, special characters, energy etc.) The platforms are: X(Twitter), LinkedIn, Facebook and Instagram. \n\nThe topic to write about is:  {{ $json.Topic }}\n\nThe Target audience is: {{ $json['Target Audience'] }}\n\nAdditional instructions: {{ $json['Additional Instructions'] }}",
+        "options": {
+          "systemMessage": "System: You are a social media content creator, copywriter and creative. Your goal is to write concise, engaging and adequate audience oriented post content for the given topic. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        140,
+        0
+      ],
+      "id": "7e4ccc3a-9dbc-4b45-9c0a-6c97919d5a3f",
+      "name": "AI Content Generation"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let item = JSON.parse($('AI Content Generation').item.json.output)\n\nlet topic = $('FetchTopics').item.json.Topic\n\nreturn {topic, item}\n\n// return arr2\n\nconsole.log(arr)\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "cad0bc7c-46d3-4090-a31b-aae53d66a184",
+      "name": "Output formatting"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "FetchTopics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Content Generation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Content Generation",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FetchTopics": {
+      "main": [
+        [
+          {
+            "node": "AI Content Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Generation": {
+      "main": [
+        [
+          {
+            "node": "Output formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output formatting": {
+      "main": [
+        [
+          {
+            "node": "Update with content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
