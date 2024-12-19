@@ -20,6 +20,8 @@ This workflow integrates Slack with various AI and automation tools, leveraging 
    - **Sub-Workflow**: Calls a dedicated workflow to process calendar event data for Google Calendar.
 5. **Response**: Outputs processed results back to Slack in real time.
 
+<img width="1117" alt="Zrzut ekranu 2024-12-19 o 21 46 25" src="https://github.com/user-attachments/assets/186364c0-9d26-448e-be20-4f6805a86a5c" />
+
 ## Requirements
 - Slack API credentials.
 - OpenAI API key (via OpenRouter).
