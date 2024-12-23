@@ -2,6 +2,8 @@
 
 This repository contains an **n8n workflow** designed to automate pull request reviews. By integrating GitHub triggers and the **Mistral 7B Instruct LLM** (via OpenRouter), the workflow generates concise and technical review feedback for changed files and posts it as a comment on the pull request.
 
+<img width="1269" alt="Zrzut ekranu 2024-12-23 o 12 27 00" src="https://github.com/user-attachments/assets/98be6731-13c2-43d3-99b0-536c0c71d692" />
+
 ## Features
 
 - **GitHub Trigger**: Executes automatically when a new pull request is created or updated.
