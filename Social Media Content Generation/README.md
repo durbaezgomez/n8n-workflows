@@ -1,5 +1,7 @@
 ## Social Media Post Automation Workflow  
 
+<img width="763" alt="Zrzut ekranu 2024-12-23 o 13 06 59" src="https://github.com/user-attachments/assets/5327f63b-99e3-4cee-9836-243a0db909e3" />
+
 ### Workflow Summary  
 - **Trigger**: Manual start for testing.  
 - **Fetch Topics**: Retrieves data (topics, audience, instructions) from Google Sheets.  
@@ -14,5 +16,3 @@
 
 ### Purpose  
 Automates social media content creation and organization for efficient workflow management.  
-
-<img width="1100" alt="Zrzut ekranu 2024-12-17 o 14 08 23" src="https://github.com/user-attachments/assets/83a6cebc-6c22-4969-a50b-d8b73ba0c717" />
