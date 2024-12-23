@@ -2,6 +2,8 @@
 
 This workflow integrates Slack with various AI and automation tools, leveraging n8n for seamless communication and task automation.
 
+<img width="935" alt="Zrzut ekranu 2024-12-23 o 13 11 45" src="https://github.com/user-attachments/assets/33a10dc7-8ab3-4f3a-8488-eaae687fa036" />
+
 ## Features
 - **Slack Integration**: Triggers on Slack messages and filters based on user or channel-specific criteria.
 - **AI-Powered Assistance**: Utilizes LangChain and OpenAI's GPT models for advanced language processing and task handling.
@@ -19,8 +21,6 @@ This workflow integrates Slack with various AI and automation tools, leveraging 
    - Google Drive and Sheets for data retrieval.
    - **Sub-Workflow**: Calls a dedicated workflow to process calendar event data for Google Calendar.
 5. **Response**: Outputs processed results back to Slack in real time.
-
-<img width="1117" alt="Zrzut ekranu 2024-12-19 o 21 46 25" src="https://github.com/user-attachments/assets/186364c0-9d26-448e-be20-4f6805a86a5c" />
 
 ## Requirements
 - Slack API credentials.
