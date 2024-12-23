@@ -1,0 +1,1109 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "owner": {
+          "__rl": true,
+          "value": "durbaezgomez",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "test-ai-code-review",
+          "mode": "name"
+        },
+        "events": [
+          "pull_request"
+        ],
+        "options": {}
+      },
+      "name": "GitHub Trigger",
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        500
+      ],
+      "id": "3b1d5804-8872-41cc-a4eb-11ac5f6fdaec",
+      "webhookId": "7ec086ec-e827-4fd8-9b33-a37720479415",
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "DJibNgyy2M4es8cd",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "url": "={{ $('Fetch Files Changed List').all()[0].json[0].contents_url }}",
+        "options": {}
+      },
+      "name": "Fetch Files Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        520,
+        500
+      ],
+      "id": "db7a1580-8115-4859-bad7-8b842c6d0d7b",
+      "executeOnce": false,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "dcqPUXaZIZIEcn7f",
+          "name": "GitHub PAT Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "url": "={{ $('GitHub Trigger').item.json.body.pull_request.url }}/files",
+        "options": {}
+      },
+      "name": "Fetch Files Changed List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        340,
+        500
+      ],
+      "id": "e2906630-987f-4aa2-aab5-ad9a3cfab9fc",
+      "executeOnce": false,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "dcqPUXaZIZIEcn7f",
+          "name": "GitHub PAT Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "url": "={{ $json.download_url }}",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "name": "Download Changes Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        900,
+        420
+      ],
+      "id": "dc56f870-a3f7-4569-b4a0-044a7792ba34",
+      "executeOnce": false,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "dcqPUXaZIZIEcn7f",
+          "name": "GitHub PAT Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "url": "={{ $('GitHub Trigger').item.json.body.repository.contents_url.replace(\"{+path}\", $json[\"path\"])}}",
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "path",
+              "value": "={{ $json.path }}"
+            }
+          ]
+        }
+      },
+      "name": "Download Destination branch files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        700,
+        620
+      ],
+      "id": "b42775c2-8d42-498b-9689-335672ad5eba",
+      "executeOnce": false,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "dcqPUXaZIZIEcn7f",
+          "name": "GitHub PAT Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "url": "={{ $json.download_url }}",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "name": "Download Destinatio Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        900,
+        620
+      ],
+      "id": "85093941-dd03-4563-8db6-6d37c0bf8b6a",
+      "executeOnce": false,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "dcqPUXaZIZIEcn7f",
+          "name": "GitHub PAT Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $('Merge').all()}}",
+        "options": {
+          "systemMessage": "Goal:\nAnalyze two files provided in a JSON format. Each file contains its fileName, content, and associated branch. The goal is to review the files content changes between the “destination” and “pullRequest” - which contains suggested changes to the files contents focusing on:\n\t•\tSyntax improvements\n\t•\tLogic enhancements\n\t•\tTypographical errors\n\t•\tSubtle suggestions to improve code quality\n\nWhen responding, be concise, providing short, actionable feedback and examples of improvements when necessary. DO not mention the branch or file name as it is implied by the PR info. Mention if no issues are found and encourage merging the Pull Request in that scenario. Do not use any form of politeness, restrain yourself to only constructive and technical feedback sentences.\n\nThe output should only include your feedback and absolutely nothing more. Always structure your output so the feedback response is a single string and is in a json format property called \"comments\". "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1800,
+        500
+      ],
+      "id": "b17111f1-5a1d-4733-a40c-f35e7ef3f13c",
+      "name": "AI Agent",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "model": "mistralai/mistral-7b-instruct:free",
+        "options": {
+          "baseURL": "https://openrouter.ai/api/v1"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1820,
+        660
+      ],
+      "id": "7f76c8bd-2868-4180-aea4-dea3abda28d8",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "oRcP3VX9DoM8EVI5",
+          "name": "OpenRouter Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fc941946-5c04-4d19-82b9-35a6df5e4bff",
+              "name": "fileName",
+              "value": "={{ $('Fetch Files Info').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "bee8e5ad-1dc9-44be-9401-7e8afd509111",
+              "name": "content",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "ee3ef281-44d3-4531-a406-a7305ed643f2",
+              "name": "branch",
+              "value": "pullRequest",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1140,
+        420
+      ],
+      "id": "c665e824-738a-46a5-94d3-c7930a4e095e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fc941946-5c04-4d19-82b9-35a6df5e4bff",
+              "name": "fileName",
+              "value": "={{ $('Download Destination branch files').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "bee8e5ad-1dc9-44be-9401-7e8afd509111",
+              "name": "content",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "7cf116f7-6d6a-44fa-91c0-41f38f321a66",
+              "name": "branch",
+              "value": "destination",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1140,
+        620
+      ],
+      "id": "5e0f7445-b2d3-4d7b-af5f-95989e36f239",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1360,
+        500
+      ],
+      "id": "f786d703-86b4-4c59-88a7-7f8daebe15a2",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "review",
+        "owner": {
+          "__rl": true,
+          "value": "durbaezgomez",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $('GitHub Trigger').all()[0].json.body.repository.name }}",
+          "mode": "name"
+        },
+        "pullRequestNumber": "={{ $('GitHub Trigger').all()[0].json.body.number }}",
+        "event": "comment",
+        "body": "={{ 'AI REVIEW: '+ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        500
+      ],
+      "id": "55403194-5114-4446-a061-26d26a2dd0c1",
+      "name": "GitHub",
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "DJibNgyy2M4es8cd",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst result = items.reduce((acc, item, index) => {\n  acc[`item${index + 1}`] = item; // \n  return acc;\n}, {});\n\nreturn result"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        500
+      ],
+      "id": "b09c0a23-2d58-4b5d-a4b3-f84f0cc75a4d",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "content": "## GitHub trigger \n**on New Pull Request**",
+        "height": 520,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        300
+      ],
+      "id": "26d43e22-25e4-4ea1-8435-a087ae8c8801",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Files extraction\n**Fetching info on edited files and their content**",
+        "height": 520,
+        "width": 800,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        280,
+        300
+      ],
+      "id": "0a14d08e-20e3-4928-b5bf-23a60df25eb2",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Data formatting\n**Format data to provide a pair of files to AI: 1 from pull request, another from the destination branch**",
+        "height": 520,
+        "width": 660
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        300
+      ],
+      "id": "3d1975a8-b6d9-4bbd-b716-3d8cca099f5f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent\n**Analyzes changes in files and provides feedback**",
+        "height": 520,
+        "width": 380,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        300
+      ],
+      "id": "85af26e7-9344-4435-b380-f45ab95f222e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Output\n**Output AI Agent feedback as a comment on the PR**",
+        "height": 520,
+        "width": 340,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        300
+      ],
+      "id": "20051c78-bf4d-4092-a32e-1873399afcea",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "local data manipulation",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        180
+      ],
+      "id": "e1bca368-c82c-43df-8037-89fcd30632fe",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "HTTP requests",
+        "height": 80,
+        "width": 150,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        180
+      ],
+      "id": "2f014a0b-158a-4b0f-be3a-15a1cd5f8671",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "AI",
+        "height": 80,
+        "width": 150,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        360,
+        180
+      ],
+      "id": "6f03602d-6180-4861-ac1d-a885470103cf",
+      "name": "Sticky Note7"
+    }
+  ],
+  "connections": {
+    "GitHub Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Files Changed List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Files Info": {
+      "main": [
+        [
+          {
+            "node": "Download Changes Files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Destination branch files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Files Changed List": {
+      "main": [
+        [
+          {
+            "node": "Fetch Files Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Changes Files": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Destination branch files": {
+      "main": [
+        [
+          {
+            "node": "Download Destinatio Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Destinatio Files": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "GitHub Trigger": [
+      {
+        "body": {
+          "action": "opened",
+          "number": 3,
+          "pull_request": {
+            "url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/3",
+            "id": 2248497598,
+            "node_id": "PR_kwDONgPBq86GBVm-",
+            "html_url": "https://github.com/durbaezgomez/test-ai-code-review/pull/3",
+            "diff_url": "https://github.com/durbaezgomez/test-ai-code-review/pull/3.diff",
+            "patch_url": "https://github.com/durbaezgomez/test-ai-code-review/pull/3.patch",
+            "issue_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/3",
+            "number": 3,
+            "state": "open",
+            "locked": false,
+            "title": "Update readme",
+            "user": {
+              "login": "durbaezgomez",
+              "id": 34062141,
+              "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+              "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/durbaezgomez",
+              "html_url": "https://github.com/durbaezgomez",
+              "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+              "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+              "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+              "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+              "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+              "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false
+            },
+            "body": null,
+            "created_at": "2024-12-22T19:13:45Z",
+            "updated_at": "2024-12-22T19:13:45Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": null,
+            "assignee": null,
+            "assignees": [],
+            "requested_reviewers": [],
+            "requested_teams": [],
+            "labels": [],
+            "milestone": null,
+            "draft": false,
+            "commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/3/commits",
+            "review_comments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/3/comments",
+            "review_comment_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/comments{/number}",
+            "comments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/3/comments",
+            "statuses_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/statuses/4ee8b640c68bc460433e772e6b366bd43a2c161b",
+            "head": {
+              "label": "durbaezgomez:test-branch",
+              "ref": "test-branch",
+              "sha": "4ee8b640c68bc460433e772e6b366bd43a2c161b",
+              "user": {
+                "login": "durbaezgomez",
+                "id": 34062141,
+                "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+                "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/durbaezgomez",
+                "html_url": "https://github.com/durbaezgomez",
+                "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+                "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+                "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+                "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+                "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+                "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+                "type": "User",
+                "user_view_type": "public",
+                "site_admin": false
+              },
+              "repo": {
+                "id": 906215851,
+                "node_id": "R_kgDONgPBqw",
+                "name": "test-ai-code-review",
+                "full_name": "durbaezgomez/test-ai-code-review",
+                "private": false,
+                "owner": {
+                  "login": "durbaezgomez",
+                  "id": 34062141,
+                  "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+                  "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/durbaezgomez",
+                  "html_url": "https://github.com/durbaezgomez",
+                  "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+                  "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+                  "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+                  "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+                  "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+                  "type": "User",
+                  "user_view_type": "public",
+                  "site_admin": false
+                },
+                "html_url": "https://github.com/durbaezgomez/test-ai-code-review",
+                "description": "This is a sample repo to test n8n ai automation involving ai code review upon new pull request",
+                "fork": false,
+                "url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review",
+                "forks_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/forks",
+                "keys_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/keys{/key_id}",
+                "collaborators_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/collaborators{/collaborator}",
+                "teams_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/teams",
+                "hooks_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/hooks",
+                "issue_events_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/events{/number}",
+                "events_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/events",
+                "assignees_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/assignees{/user}",
+                "branches_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/branches{/branch}",
+                "tags_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/tags",
+                "blobs_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/blobs{/sha}",
+                "git_tags_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/tags{/sha}",
+                "git_refs_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/refs{/sha}",
+                "trees_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/trees{/sha}",
+                "statuses_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/statuses/{sha}",
+                "languages_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/languages",
+                "stargazers_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/stargazers",
+                "contributors_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/contributors",
+                "subscribers_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/subscribers",
+                "subscription_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/subscription",
+                "commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/commits{/sha}",
+                "git_commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/commits{/sha}",
+                "comments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/comments{/number}",
+                "issue_comment_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/comments{/number}",
+                "contents_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/contents/{+path}",
+                "compare_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/compare/{base}...{head}",
+                "merges_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/merges",
+                "archive_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/{archive_format}{/ref}",
+                "downloads_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/downloads",
+                "issues_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues{/number}",
+                "pulls_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls{/number}",
+                "milestones_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/milestones{/number}",
+                "notifications_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/notifications{?since,all,participating}",
+                "labels_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/labels{/name}",
+                "releases_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/releases{/id}",
+                "deployments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/deployments",
+                "created_at": "2024-12-20T12:05:19Z",
+                "updated_at": "2024-12-20T12:05:47Z",
+                "pushed_at": "2024-12-20T12:07:41Z",
+                "git_url": "git://github.com/durbaezgomez/test-ai-code-review.git",
+                "ssh_url": "git@github.com:durbaezgomez/test-ai-code-review.git",
+                "clone_url": "https://github.com/durbaezgomez/test-ai-code-review.git",
+                "svn_url": "https://github.com/durbaezgomez/test-ai-code-review",
+                "homepage": null,
+                "size": 1,
+                "stargazers_count": 0,
+                "watchers_count": 0,
+                "language": null,
+                "has_issues": true,
+                "has_projects": true,
+                "has_downloads": true,
+                "has_wiki": true,
+                "has_pages": false,
+                "has_discussions": false,
+                "forks_count": 0,
+                "mirror_url": null,
+                "archived": false,
+                "disabled": false,
+                "open_issues_count": 1,
+                "license": null,
+                "allow_forking": true,
+                "is_template": false,
+                "web_commit_signoff_required": false,
+                "topics": [],
+                "visibility": "public",
+                "forks": 0,
+                "open_issues": 1,
+                "watchers": 0,
+                "default_branch": "main",
+                "allow_squash_merge": true,
+                "allow_merge_commit": true,
+                "allow_rebase_merge": true,
+                "allow_auto_merge": false,
+                "delete_branch_on_merge": false,
+                "allow_update_branch": false,
+                "use_squash_pr_title_as_default": false,
+                "squash_merge_commit_message": "COMMIT_MESSAGES",
+                "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+                "merge_commit_message": "PR_TITLE",
+                "merge_commit_title": "MERGE_MESSAGE"
+              }
+            },
+            "base": {
+              "label": "durbaezgomez:main",
+              "ref": "main",
+              "sha": "7378c552dc4f7685ca0d1355682cb29909730958",
+              "user": {
+                "login": "durbaezgomez",
+                "id": 34062141,
+                "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+                "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/durbaezgomez",
+                "html_url": "https://github.com/durbaezgomez",
+                "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+                "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+                "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+                "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+                "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+                "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+                "type": "User",
+                "user_view_type": "public",
+                "site_admin": false
+              },
+              "repo": {
+                "id": 906215851,
+                "node_id": "R_kgDONgPBqw",
+                "name": "test-ai-code-review",
+                "full_name": "durbaezgomez/test-ai-code-review",
+                "private": false,
+                "owner": {
+                  "login": "durbaezgomez",
+                  "id": 34062141,
+                  "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+                  "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/durbaezgomez",
+                  "html_url": "https://github.com/durbaezgomez",
+                  "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+                  "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+                  "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+                  "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+                  "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+                  "type": "User",
+                  "user_view_type": "public",
+                  "site_admin": false
+                },
+                "html_url": "https://github.com/durbaezgomez/test-ai-code-review",
+                "description": "This is a sample repo to test n8n ai automation involving ai code review upon new pull request",
+                "fork": false,
+                "url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review",
+                "forks_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/forks",
+                "keys_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/keys{/key_id}",
+                "collaborators_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/collaborators{/collaborator}",
+                "teams_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/teams",
+                "hooks_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/hooks",
+                "issue_events_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/events{/number}",
+                "events_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/events",
+                "assignees_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/assignees{/user}",
+                "branches_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/branches{/branch}",
+                "tags_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/tags",
+                "blobs_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/blobs{/sha}",
+                "git_tags_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/tags{/sha}",
+                "git_refs_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/refs{/sha}",
+                "trees_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/trees{/sha}",
+                "statuses_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/statuses/{sha}",
+                "languages_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/languages",
+                "stargazers_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/stargazers",
+                "contributors_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/contributors",
+                "subscribers_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/subscribers",
+                "subscription_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/subscription",
+                "commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/commits{/sha}",
+                "git_commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/commits{/sha}",
+                "comments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/comments{/number}",
+                "issue_comment_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/comments{/number}",
+                "contents_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/contents/{+path}",
+                "compare_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/compare/{base}...{head}",
+                "merges_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/merges",
+                "archive_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/{archive_format}{/ref}",
+                "downloads_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/downloads",
+                "issues_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues{/number}",
+                "pulls_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls{/number}",
+                "milestones_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/milestones{/number}",
+                "notifications_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/notifications{?since,all,participating}",
+                "labels_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/labels{/name}",
+                "releases_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/releases{/id}",
+                "deployments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/deployments",
+                "created_at": "2024-12-20T12:05:19Z",
+                "updated_at": "2024-12-20T12:05:47Z",
+                "pushed_at": "2024-12-20T12:07:41Z",
+                "git_url": "git://github.com/durbaezgomez/test-ai-code-review.git",
+                "ssh_url": "git@github.com:durbaezgomez/test-ai-code-review.git",
+                "clone_url": "https://github.com/durbaezgomez/test-ai-code-review.git",
+                "svn_url": "https://github.com/durbaezgomez/test-ai-code-review",
+                "homepage": null,
+                "size": 1,
+                "stargazers_count": 0,
+                "watchers_count": 0,
+                "language": null,
+                "has_issues": true,
+                "has_projects": true,
+                "has_downloads": true,
+                "has_wiki": true,
+                "has_pages": false,
+                "has_discussions": false,
+                "forks_count": 0,
+                "mirror_url": null,
+                "archived": false,
+                "disabled": false,
+                "open_issues_count": 1,
+                "license": null,
+                "allow_forking": true,
+                "is_template": false,
+                "web_commit_signoff_required": false,
+                "topics": [],
+                "visibility": "public",
+                "forks": 0,
+                "open_issues": 1,
+                "watchers": 0,
+                "default_branch": "main",
+                "allow_squash_merge": true,
+                "allow_merge_commit": true,
+                "allow_rebase_merge": true,
+                "allow_auto_merge": false,
+                "delete_branch_on_merge": false,
+                "allow_update_branch": false,
+                "use_squash_pr_title_as_default": false,
+                "squash_merge_commit_message": "COMMIT_MESSAGES",
+                "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+                "merge_commit_message": "PR_TITLE",
+                "merge_commit_title": "MERGE_MESSAGE"
+              }
+            },
+            "_links": {
+              "self": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/3"
+              },
+              "html": {
+                "href": "https://github.com/durbaezgomez/test-ai-code-review/pull/3"
+              },
+              "issue": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/3"
+              },
+              "comments": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/3/comments"
+              },
+              "review_comments": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/3/comments"
+              },
+              "review_comment": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/comments{/number}"
+              },
+              "commits": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls/3/commits"
+              },
+              "statuses": {
+                "href": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/statuses/4ee8b640c68bc460433e772e6b366bd43a2c161b"
+              }
+            },
+            "author_association": "OWNER",
+            "auto_merge": null,
+            "active_lock_reason": null,
+            "merged": false,
+            "mergeable": null,
+            "rebaseable": null,
+            "mergeable_state": "unknown",
+            "merged_by": null,
+            "comments": 0,
+            "review_comments": 0,
+            "maintainer_can_modify": false,
+            "commits": 1,
+            "additions": 1,
+            "deletions": 1,
+            "changed_files": 1
+          },
+          "repository": {
+            "id": 906215851,
+            "node_id": "R_kgDONgPBqw",
+            "name": "test-ai-code-review",
+            "full_name": "durbaezgomez/test-ai-code-review",
+            "private": false,
+            "owner": {
+              "login": "durbaezgomez",
+              "id": 34062141,
+              "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+              "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/durbaezgomez",
+              "html_url": "https://github.com/durbaezgomez",
+              "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+              "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+              "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+              "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+              "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+              "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false
+            },
+            "html_url": "https://github.com/durbaezgomez/test-ai-code-review",
+            "description": "This is a sample repo to test n8n ai automation involving ai code review upon new pull request",
+            "fork": false,
+            "url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review",
+            "forks_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/forks",
+            "keys_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/keys{/key_id}",
+            "collaborators_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/collaborators{/collaborator}",
+            "teams_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/teams",
+            "hooks_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/hooks",
+            "issue_events_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/events{/number}",
+            "events_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/events",
+            "assignees_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/assignees{/user}",
+            "branches_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/branches{/branch}",
+            "tags_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/tags",
+            "blobs_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/blobs{/sha}",
+            "git_tags_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/tags{/sha}",
+            "git_refs_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/refs{/sha}",
+            "trees_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/trees{/sha}",
+            "statuses_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/statuses/{sha}",
+            "languages_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/languages",
+            "stargazers_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/stargazers",
+            "contributors_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/contributors",
+            "subscribers_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/subscribers",
+            "subscription_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/subscription",
+            "commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/commits{/sha}",
+            "git_commits_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/git/commits{/sha}",
+            "comments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/comments{/number}",
+            "issue_comment_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues/comments{/number}",
+            "contents_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/contents/{+path}",
+            "compare_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/compare/{base}...{head}",
+            "merges_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/merges",
+            "archive_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/{archive_format}{/ref}",
+            "downloads_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/downloads",
+            "issues_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/issues{/number}",
+            "pulls_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/pulls{/number}",
+            "milestones_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/milestones{/number}",
+            "notifications_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/notifications{?since,all,participating}",
+            "labels_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/labels{/name}",
+            "releases_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/releases{/id}",
+            "deployments_url": "https://api.github.com/repos/durbaezgomez/test-ai-code-review/deployments",
+            "created_at": "2024-12-20T12:05:19Z",
+            "updated_at": "2024-12-20T12:05:47Z",
+            "pushed_at": "2024-12-20T12:07:41Z",
+            "git_url": "git://github.com/durbaezgomez/test-ai-code-review.git",
+            "ssh_url": "git@github.com:durbaezgomez/test-ai-code-review.git",
+            "clone_url": "https://github.com/durbaezgomez/test-ai-code-review.git",
+            "svn_url": "https://github.com/durbaezgomez/test-ai-code-review",
+            "homepage": null,
+            "size": 1,
+            "stargazers_count": 0,
+            "watchers_count": 0,
+            "language": null,
+            "has_issues": true,
+            "has_projects": true,
+            "has_downloads": true,
+            "has_wiki": true,
+            "has_pages": false,
+            "has_discussions": false,
+            "forks_count": 0,
+            "mirror_url": null,
+            "archived": false,
+            "disabled": false,
+            "open_issues_count": 1,
+            "license": null,
+            "allow_forking": true,
+            "is_template": false,
+            "web_commit_signoff_required": false,
+            "topics": [],
+            "visibility": "public",
+            "forks": 0,
+            "open_issues": 1,
+            "watchers": 0,
+            "default_branch": "main"
+          },
+          "sender": {
+            "login": "durbaezgomez",
+            "id": 34062141,
+            "node_id": "MDQ6VXNlcjM0MDYyMTQx",
+            "avatar_url": "https://avatars.githubusercontent.com/u/34062141?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/durbaezgomez",
+            "html_url": "https://github.com/durbaezgomez",
+            "followers_url": "https://api.github.com/users/durbaezgomez/followers",
+            "following_url": "https://api.github.com/users/durbaezgomez/following{/other_user}",
+            "gists_url": "https://api.github.com/users/durbaezgomez/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/durbaezgomez/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/durbaezgomez/subscriptions",
+            "organizations_url": "https://api.github.com/users/durbaezgomez/orgs",
+            "repos_url": "https://api.github.com/users/durbaezgomez/repos",
+            "events_url": "https://api.github.com/users/durbaezgomez/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/durbaezgomez/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          }
+        },
+        "headers": {
+          "host": "ec6e-46-175-239-68.ngrok-free.app",
+          "user-agent": "GitHub-Hookshot/68d5600",
+          "content-length": "24297",
+          "accept": "*/*",
+          "content-type": "application/json",
+          "x-forwarded-for": "140.82.115.152",
+          "x-forwarded-host": "ec6e-46-175-239-68.ngrok-free.app",
+          "x-forwarded-proto": "https",
+          "x-github-delivery": "de020110-c098-11ef-8969-75a3a02431dc",
+          "x-github-event": "pull_request",
+          "x-github-hook-id": "520210384",
+          "x-github-hook-installation-target-id": "906215851",
+          "x-github-hook-installation-target-type": "repository",
+          "accept-encoding": "gzip"
+        },
+        "query": {}
+      }
+    ]
+  }
+}
