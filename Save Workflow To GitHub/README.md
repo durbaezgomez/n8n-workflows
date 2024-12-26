@@ -2,41 +2,46 @@
 # Save Workflow To GitHub
 
 ## Description
-
-This workflow automatically generates a README.md file for your n8n workflows and adds them to GitHub, along with the workflow's JSON data. It leverages an AI agent to summarize the workflow, extract key information, and present it in a user-friendly format. 🚀
+This workflow automates the process of saving an n8n workflow to a GitHub repository. It fetches the workflow data, formats it, generates a README file using an AI agent, and then either creates or updates both the workflow's JSON file and its README in a specified GitHub repository. 🚀
 
 ## Used Nodes and Integrations
 
-*   **Trigger Nodes:**
-    *   Execute Workflow Trigger
-    *   Manual Trigger
-*   **Core Nodes:**
-    *   Code
-    *   Set
-    *   n8n
-    *   Sticky Note
-*   **Integrations:**
-    *   GitHub
-    *   Langchain (AI Agent and OpenRouter)
+**Nodes:**
+
+*   Execute Workflow Trigger
+*   Code
+*   AI Agent
+*   Openrouter (LLM Chat Open AI)
+*   GitHub
+*   Set
+*   Manual Trigger
+*   n8n
+*   Sticky Note
+
+**Integrations:**
+
+*   GitHub
+*   OpenRouter API
 
 ## Setup Instructions
 
-To use this workflow successfully, follow these steps:
+Before using this workflow, you'll need to configure the following:
 
-1.  **n8n API Credentials:** ✅
-    *   Make sure you have configured the **n8n API** credential for the `Get Workflow by ID` and `Get Workflow From List` nodes. This allows the workflow to fetch its own data.
-    
-2.  **GitHub OAuth2 Credentials:** ✅
-    *   Ensure the **GitHub OAuth2 API** credential is set up correctly to allow writing to your repository in the `Update readme`, `Create JSON file`, `Create README`, and `Edit JSON file` nodes.
+1.  **GitHub OAuth2 Credentials:** ✅
+    *   Make sure you have your GitHub OAuth2 credentials set up in n8n and selected in all of the GitHub nodes.
+2.  **OpenRouter API Key:** ✅
+    *   Ensure your OpenRouter API key is configured correctly within the 'Openrouter' node (it uses the credential named 'OpenRouter Credential').
 
-3.  **Openrouter Credentials:** ✅
-    *   Confirm that your **OpenRouter API** Key is configured under the `Openrouter` node's credentials settings. This is used by the AI Agent. 
+3. **n8n API Credentials:** ✅
+    *   Make sure you have your n8n API credentials set up in n8n and selected in both of the n8n nodes.
 
-4.  **Workflow ID:** 🔧
-    *   Update the `Get Workflow From List` in the `When clicking 'Test workflow'` branch node to **set your n8n workflow id**, the one you are going to save on Github.
-5.  **GitHub Repository:** 🔧
-    *   In all Github nodes (`Update readme`, `Create JSON file`, `Create README`, `Edit JSON file` and `Check if workflow is on GitHub`), set the  `repository` property to your **target Github repository**.
+4.  **Repository and Owner:**
+	* Inside the GitHub nodes, ensure the `owner` and `repository` are correctly set to target your desired GitHub repo. 🔧
 
-6. **Run the `When clicking 'Test workflow'` branch or trigger by using the `Execute Workflow Trigger` by passing the ID of the workflow you want to save on Github**
+5. **Manual Trigger vs Workflow Execution:**
+	* The workflow has two starting points, it can either be executed manually using the 'When clicking ‘Test workflow’ node, or by passing the ID from the 'Execute Workflow Trigger'. 🕹️
 
-That's pretty much it! Enjoy automatically documenting your n8n workflows on GitHub! 🎉
+6. **Input values:**
+	* If you execute the workflow manually, make sure you enter a valid workflow ID. To properly link the workflow to github, you need to execute the workflow with the ID from the 'Execute Workflow Trigger'.
+
+Once these are set, your n8n workflows will be automatically saved to your GitHub repo! 🎉
