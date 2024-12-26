@@ -4,6 +4,8 @@
 ## Description
 This workflow automates the process of saving an n8n workflow to a GitHub repository. It fetches the workflow data, formats it, generates a README file using an AI agent, and then either creates or updates both the workflow's JSON file and its README in a specified GitHub repository. 🚀
 
+<img width="1243" alt="Zrzut ekranu 2024-12-26 o 15 36 11" src="https://github.com/user-attachments/assets/30893b07-03f3-4b97-854d-35c1ba39646c" />
+
 ## Used Nodes and Integrations
 
 **Nodes:**
