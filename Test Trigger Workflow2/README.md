@@ -1,22 +1,19 @@
 
-# Save Workflow To GitHub Subworkflow
+# Execute Workflow Example
 
-🚀 **Description:**
+## Description
+This n8n workflow demonstrates how to execute another workflow using the 'Execute Workflow' node. It's triggered manually, retrieves workflow data via a code node, and then kicks off a specified sub-workflow. 🚀
 
-This workflow acts as a subworkflow designed to be triggered by another main workflow. It receives workflow data and, based on the `workflowId`, executes another n8n workflow. The primary goal is to allow modular execution of workflows, enabling a 'save to GitHub' functionality where one workflow can trigger and execute another, for example, the workflow which saves a workflow definition file to git.
+## Used Nodes and Integrations
+*   **Manual Trigger:** `When clicking ‘Test workflow’`
+*   **Code:** `Code` (for extracting the current workflow reference)
+*   **Execute Workflow:** `Execute Workflow`, which is used to execute a sub-workflow
 
-⚙️ **Used Nodes and Integrations:**
+## Setup Instructions
 
-*   **Manual Trigger:**  Initiates the subworkflow when manually executed within a main workflow.
-*   **Code:**  A node to access the workflow data for use in the workflow 
-*   **Execute Workflow:** Triggers another n8n workflow based the extracted workflow ID given by the caller.
-
-
-🛠️ **Setup Instructions:**
-
-1.  **No Credentials Required:** No external service credentials are needed for this workflow.
-2.  **Subworkflow Activation**: This workflow is meant to be triggered by another workflow using the `Execute Workflow` node. Therefore, no external triggering is required.
-3.  **`workflowId` Value:** When triggering this workflow in the `Execute Workflow` node of another workflow, make sure the `workflowId` parameter points to the workflow you'd like to execute.. 
-4.  **Input:** No specific input data is required for the execution of the subworkflow. Note, however, that the workflow to execute is given by its `workflowId` using a parameter. This ID parameter should be extracted from the main workflow in advanced.
-
-✅ Once setup, this subworkflow can be incorporated into your main workflows to execute further workflows.
+1.  **Copy the Workflow:** Import this workflow into your n8n instance. ✅
+2.  **Configure 'Execute Workflow' Node:**
+    *   Locate the 'Execute Workflow' node. 🔧
+    *   You'll need to select the specific sub-workflow you want to execute via the `workflowId` parameter. This is an id and is not the name of the workflow itself. ⚙️
+    *   By default the `waitForSubWorkflow` it set to true. This means it this workflow will wait for the called subworkflow to complete. ⏱️
+3.  **Run the Workflow:** Click the 'Test workflow' button to start the workflow and initiate the execution of the sub-workflow. ▶️
