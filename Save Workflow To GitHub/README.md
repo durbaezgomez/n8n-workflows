@@ -1,29 +1,31 @@
-# n8n Workflow to Generate README for GitHub
+# AI-Powered README Generator for n8n Workflows
 
-## Description 🚀
-This workflow automatically generates a README file for your n8n workflows and pushes it to a specified GitHub repository. It extracts information from the workflow itself, such as the title, nodes used, and any setup instructions, to create a clear and concise README.md file. This saves you time and effort while ensuring your workflows are well-documented.
+## Description
+This n8n workflow automatically generates README files for your n8n workflows. 🚀 It analyzes the workflow JSON, extracts key information, and uses an AI agent to create a clear and concise README.md file.  This makes sharing and documenting your workflows super easy! ✨
 
-## Used Nodes and Integrations 🔌
+## Used Nodes and Integrations
 * **n8n Nodes:**
     * Execute Workflow Trigger
     * Code
     * Set
     * Manual Trigger
     * n8n
-    * Sticky Note
-* **Langchain Nodes:**
-    * Agent
-    * Openrouter (google/gemini-pro-1.5)
-* **Integrations:**
     * GitHub
-    * OpenRouter.ai
+* **External Integrations:**
+    * GitHub
+    * OpenRouter (using Google Gemini Pro)
+    * Langchain
 
-## Setup Instructions 🔧
-1. **Workflow ID:** Set the `Workflow ID` in the *Get Workflow by ID* node. You can trigger the workflow manually or by using the webhook URL of the `Execute Workflow Trigger` node, passing in the workflow ID you wish to generate a README for. 
-2. **GitHub Credentials:** Configure your GitHub credentials in the respective nodes (*Create JSON file*, *Create README*, *Edit JSON file* and *Update README*).
-3. **Repository:** Set the `Repository` name in the *Check if workflow is on GitHub* node under the parameter tab. This should point to the GitHub repository where you want to store the README files.
-4. **JSON Filename**: This workflow generates a JSON file containing your n8n workflow definition. The title of this JSON file will be formatted as *your-workflow-name*.json file. This process is handled within the workflow itself using a *Set* node to format the name and convert it accordingly.
-5. **OpenRouter Credentials:** Configure your OpenRouter credentials in the *Openrouter* node.
-6. **Test and Deploy:**  Click "Test workflow" to ensure everything is working correctly. Once you're happy, deploy the workflow.✅
+## Setup Instructions
+1. **Workflow Setup:** Copy the workflow JSON and import it into your n8n instance. ✅
+2. **Credentials:** Configure the necessary credentials for:
+    * **n8n API:**  Allow the workflow to access and fetch workflow details.
+    * **GitHub OAuth2 API:**  Provide access to your GitHub repository.
+    * **OpenRouter API Key:**  Enable access to the OpenRouter Language Model.
+3. **Parameters:**
+    * **Workflow ID:** Specify the workflow ID as an input for lookup.
+    * **GitHub Repository Details:** Update the values for Owner and Repository in GitHub nodes to match your target repo.
+4. **JSON Filename:** The Set Node helps determine the name for the exported workflow content. Adjust if needed.
+5. **AI Agent Prompt:** Fine-tune the prompt in the AI Agent node if you need specific information or formatting in the README.
 
-This workflow assumes your repos are hosted as https://github.com/<username>/AAP_1-12-24_automations.  Change this within the *Check if workflow is on GitHub* node parameters tab if this is different for your setup.  This should be adjusted to point to your main repository for storing the workflows and their respective README files.
+🔧 Once you've completed these steps, you're ready to generate READMEs automatically! 🎉
