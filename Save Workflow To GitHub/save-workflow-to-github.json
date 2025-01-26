@@ -18,7 +18,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        380,
+        400,
         -20
       ],
       "id": "35dc20d3-d077-434a-9206-1a12b9187fba",
@@ -28,7 +28,7 @@
       "parameters": {
         "agent": "conversationalAgent",
         "promptType": "define",
-        "text": "={{ $json.content }}",
+        "text": "={{ JSON.stringify($json.content) }}",
         "options": {
           "systemMessage": "Analyze the provided JSON file representing an n8n workflow. Based on the content, generate a clear and concise GitHub README file in Markdown format. The README should include the following sections:\n\t1.\tTitle: Extract the title of the workflow.\n\t2.\tDescription: Provide a brief explanation of what the workflow does and the goal it achieves.\n\t3.\tUsed Nodes and Integrations: List all the nodes and external services/integrations used in the workflow.\n\t4.\tSetup Instructions: Explain any necessary steps to set up the workflow when copying it, such as setting environment variables, configuring credentials, or adding required inputs.\n\nUse a professional but chilled-out tone throughout the README. Add a friendly and approachable vibe by including relevant emojis (e.g., ✅ for completed setups, 🚀 for goals, 🔧 for setup steps) where appropriate. The output must strictly adhere to Markdown formatting, starting with a # header for the title. Do not include any content or comments outside the scope of the README file.\n\nExample output:\n```markdown#Workflow Title\\n##Workflow Details```\""
         }
@@ -46,7 +46,7 @@
     },
     {
       "parameters": {
-        "model": "google/gemini-2.0-flash-exp:free",
+        "model": "google/gemini-pro-1.5",
         "options": {
           "baseURL": "https://openrouter.ai/api/v1"
         }
@@ -78,10 +78,8 @@
         },
         "repository": {
           "__rl": true,
-          "value": "n8n-workflows",
-          "mode": "list",
-          "cachedResultName": "n8n-workflows",
-          "cachedResultUrl": "https://github.com/durbaezgomez/n8n-workflows"
+          "value": "={{ $('Check if workflow is on GitHub').params.repository.value }}",
+          "mode": "name"
         },
         "filePath": "={{ $('Format Workflow Data').item.json.workflowName }}/README.md",
         "fileContent": "={{ $('Remove markdown signs').item.json.output }}",
@@ -90,7 +88,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1,
       "position": [
-        1800,
+        1840,
         -160
       ],
       "id": "c8b6ce5b-ada0-45f6-ae92-69826534979a",
@@ -113,10 +111,8 @@
         },
         "repository": {
           "__rl": true,
-          "value": "n8n-workflows",
-          "mode": "list",
-          "cachedResultName": "n8n-workflows",
-          "cachedResultUrl": "https://github.com/durbaezgomez/n8n-workflows"
+          "value": "={{ $('Check if workflow is on GitHub').params.repository.value }}",
+          "mode": "name"
         },
         "filePath": "={{ $('Format Workflow Data').item.json.workflowName }}/{{ $json.jsonFileName }}",
         "fileContent": "={{ JSON.stringify($('Format Workflow Data').item.json.content, null,2) }}",
@@ -125,7 +121,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1,
       "position": [
-        1640,
+        1680,
         80
       ],
       "id": "75551d04-1394-49d1-b5f5-f31afad17514",
@@ -148,10 +144,8 @@
         },
         "repository": {
           "__rl": true,
-          "value": "n8n-workflows",
-          "mode": "list",
-          "cachedResultName": "n8n-workflows",
-          "cachedResultUrl": "https://github.com/durbaezgomez/n8n-workflows"
+          "value": "={{ $('Check if workflow is on GitHub').params.repository.value }}",
+          "mode": "name"
         },
         "filePath": "={{ $('Format Workflow Data').item.json.workflowName }}/README.md",
         "fileContent": "={{ $('Remove markdown signs').item.json.output }}",
@@ -160,7 +154,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1,
       "position": [
-        1800,
+        1840,
         80
       ],
       "id": "0f875768-19f3-4685-9bc9-c34a35c81f50",
@@ -184,10 +178,8 @@
         },
         "repository": {
           "__rl": true,
-          "value": "n8n-workflows",
-          "mode": "list",
-          "cachedResultName": "n8n-workflows",
-          "cachedResultUrl": "https://github.com/durbaezgomez/n8n-workflows"
+          "value": "={{ $('Check if workflow is on GitHub').params.repository.value }}",
+          "mode": "name"
         },
         "filePath": "={{ $('Format Workflow Data').item.json.workflowName }}/{{ $('Set JSON filename').item.json.jsonFileName }}",
         "fileContent": "={{ JSON.stringify($('Format Workflow Data').item.json.content, null,2) }}",
@@ -196,7 +188,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1,
       "position": [
-        1640,
+        1680,
         -160
       ],
       "id": "a23f8d28-e202-481f-8a88-670d45666135",
@@ -220,10 +212,10 @@
         },
         "repository": {
           "__rl": true,
-          "value": "n8n-workflows",
+          "value": "AAP_1-12-24_automations",
           "mode": "list",
-          "cachedResultName": "n8n-workflows",
-          "cachedResultUrl": "https://github.com/durbaezgomez/n8n-workflows"
+          "cachedResultName": "AAP_1-12-24_automations",
+          "cachedResultUrl": "https://github.com/durbaezgomez/AAP_1-12-24_automations"
         },
         "filePath": "={{ $('Format Workflow Data').item.json.workflowName }}/{{ $json.jsonFileName }}",
         "additionalParameters": {}
@@ -231,7 +223,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1,
       "position": [
-        1420,
+        1460,
         -20
       ],
       "id": "50a8de96-1984-4d02-b011-779062aecce9",
@@ -252,7 +244,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        980,
+        1000,
         -20
       ],
       "id": "d82e0de2-55ed-4ded-a848-84823603cab4",
@@ -322,9 +314,9 @@
         "operation": "get",
         "workflowId": {
           "__rl": true,
-          "value": "hkydiXI5SkOOnPtc",
+          "value": "RPs0P0Ka0qvqY8xp",
           "mode": "list",
-          "cachedResultName": "Save Workflow To GitHub (#hkydiXI5SkOOnPtc)"
+          "cachedResultName": "aap2-remote-to-local-files-sync (#RPs0P0Ka0qvqY8xp)"
         },
         "requestOptions": {}
       },
@@ -435,6 +427,21 @@
       ],
       "id": "4f8cec8e-cabe-4574-8b86-55e0960418ad",
       "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "# REMEMBER TO SET WORKFLOW AND DESTINATION REPO",
+        "height": 100,
+        "width": 1040
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -440
+      ],
+      "id": "b484eb96-4ee2-4a33-b3e0-1c276c7586da",
+      "name": "Sticky Note6"
     }
   ],
   "connections": {
@@ -583,7 +590,5 @@
   },
   "staticData": null,
   "meta": null,
-  "pinData": {},
-  "additional_kwargs": {},
-  "response_metadata": {}
+  "pinData": {}
 }
