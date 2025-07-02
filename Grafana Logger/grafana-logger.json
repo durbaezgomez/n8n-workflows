@@ -1,0 +1,224 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "executionId"
+            },
+            {
+              "name": "token"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fd2ea87a-5f02-461f-810a-d209d42f592c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "resource": "execution",
+        "operation": "get",
+        "executionId": "={{ $json.executionId }}",
+        "options": {
+          "activeWorkflows": true
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        380,
+        0
+      ],
+      "id": "da0a823b-0c7e-486b-8fd8-97f971a76436",
+      "name": "n8n",
+      "credentials": {
+        "n8nApi": {
+          "id": "DlaUCwiyG5nvxjps",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://logs-prod-025.grafana.net/loki/api/v1/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('When Executed by Another Workflow').item.json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        0
+      ],
+      "id": "79b9de42-0b3f-4b04-b1ec-fb5197701165",
+      "name": "Loki - Push logs"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const timestamp = Date.now() * 1e6; // Convert to nanoseconds\nconst executionData = JSON.stringify($input.item.json)\n\nreturn {\n  json: {\n    streams: [\n      {\n        stream: { logs: \"prod\" },\n        values: [[timestamp.toString(), executionData]]\n      } \n    ]  \n  } \n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "6f4b7bf1-fdbf-4b1a-afcd-2c932dc7d6f2",
+      "name": "Format Loki stream object"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "56cb3f26-9c77-4dce-8245-fc0f0c521227",
+              "leftValue": "={{ $json.data.resultData.runData.Webhook[0].data.main[0][0].json.body.chatInput }}",
+              "rightValue": "###",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        580,
+        0
+      ],
+      "id": "0fe2fc94-be36-4584-906b-018e07eb3fcb",
+      "name": "Filter only user interactions"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const itemData = $input.item.json\nconst runData = itemData.data.resultData.runData\n\nvar nodesFormatted = []\n\nfor (const nodeName in runData) {\n  if (Array.isArray(runData[nodeName])) {\n    runData[nodeName].forEach(nodeData => {\n      nodesFormatted.push({\n        name: nodeName,\n        ...nodeData\n      });\n    });\n  } \n}\n\nconst chatInfo = nodesFormatted[0].data.main[0][0].json.body\n\nreturn {\n  log: {\n    itemData, \n    nodesFormatted,\n    chatInfo\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        0
+      ],
+      "id": "0cefd0e7-ada5-48dc-a792-919b3f87f239",
+      "name": "format log"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        0
+      ],
+      "id": "3bb34091-0b72-4794-b347-bf982078e60f",
+      "name": "Wait 5s",
+      "webhookId": "46311ab3-4f43-4fc8-b76d-4e1073e44ca4"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n": {
+      "main": [
+        [
+          {
+            "node": "Filter only user interactions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Loki stream object": {
+      "main": [
+        [
+          {
+            "node": "Loki - Push logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter only user interactions": {
+      "main": [
+        [
+          {
+            "node": "format log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format log": {
+      "main": [
+        [
+          {
+            "node": "Format Loki stream object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3d188d5e6776608372babb5a38f0e018bf857063e63b63b6556840b24e736e3d"
+  }
+}
