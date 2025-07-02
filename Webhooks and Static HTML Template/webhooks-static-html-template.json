@@ -1,0 +1,426 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        480
+      ],
+      "id": "170f55bd-c906-436b-8065-5b54f7bc89b6",
+      "name": "Wait 3 sec",
+      "webhookId": "2d4d76fa-b340-4f1e-b6de-5fc68004444e"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        480
+      ],
+      "id": "876b9858-5648-4d33-b085-83bea6c735d6",
+      "name": "Some worfkflow logic"
+    },
+    {
+      "parameters": {
+        "content": "This webhook is the url for the user",
+        "height": 300,
+        "width": 200
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "844565b5-437f-4d9d-b053-28b194e31a39",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "This response serves an html with a JS script auto calling the underlying workflow webhook on website appearance\n",
+        "height": 280,
+        "width": 200
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        700,
+        0
+      ],
+      "id": "86e2fcee-716f-45b0-b078-99bf8fc91dab",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "This webhook is called after \nopening the html and should \nstart the actual workflow.\nIt returns after last node\nin workflow is executed.\n\n\n",
+        "height": 260,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        420
+      ],
+      "id": "6cf1a0d8-c8fb-4d87-bfe9-8f16b3178816",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "1",
+                    "rightValue": "1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1bcdd1e6-f130-4cdd-bad9-f05ef6969292",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4f44ef00-7e25-44c8-a2c2-71b21fa247c2",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        920,
+        480
+      ],
+      "id": "3128926d-a6f9-4b47-8188-a009fbf115e0",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"other\"\n}",
+        "options": {
+          "responseCode": null
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        660
+      ],
+      "id": "083fcb5b-87fc-4702-a52e-2c3bc8a43404",
+      "name": "Other response (EDIT)"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Loading Screen</title>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      text-align: center;\n      margin: 0;\n      padding: 20px;\n    }\n    #loading {\n      font-size: 20px;\n      font-weight: bold;\n    }\n    #complete {\n      display: none;\n      color: green;\n      font-size: 20px;\n      font-weight: bold;\n    }\n    #error {\n      display: none;\n      color: red;\n      font-size: 16px;\n    }\n  </style>\n</head>\n<body>\n  <h1>Workflow Status</h1>\n  <div id=\"loading\">Processing, please wait...</div>\n  <div id=\"complete\">Workflow complete! 🎉</div>\n  <div id=\"error\">An error occurred. Please try again.</div>\n\n  <script>\n    // Function to poll the webhook\n    async function checkWorkflowStatus() {\n      const statusUrl = '{{ $json.workflow_webhook_url }}';\n      let isComplete = false;\n\n      try {\n        // Poll the webhook URL until the workflow is complete\n        while (!isComplete) {\n          const statusResponse = await fetch(statusUrl);\n          const statusData = await statusResponse.json();\n\n          if (statusData.status === 'complete') {\n            isComplete = true;\n            document.getElementById('loading').style.display = 'none';\n            document.getElementById('complete').style.display = 'block';\n          } else if (statusData.status === 'error') {\n            throw new Error('Workflow encountered an error');\n          } else {\n            // Wait before polling again\n            await new Promise(resolve => setTimeout(resolve, 2000));\n          }\n        }\n      } catch (error) {\n        console.error('Error:', error.message);\n        document.getElementById('loading').style.display = 'none';\n        document.getElementById('error').style.display = 'block';\n      }\n    }\n\n    // Automatically start the script when the page loads\n    window.onload = () => {\n      checkWorkflowStatus();\n    };\n  </script>\n</body>\n</html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=UTF8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        740,
+        120
+      ],
+      "id": "b006803a-ff83-489c-a73c-715d86e7f471",
+      "name": "HTML Response to Webhook"
+    },
+    {
+      "parameters": {
+        "path": "d784d1fc-3b85-4394-886e-ea72c94f49fb",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        480
+      ],
+      "id": "75d6b6f3-114a-4fdf-a204-2e9a8c8c8e48",
+      "name": "workflow_webhook",
+      "webhookId": "d784d1fc-3b85-4394-886e-ea72c94f49fb"
+    },
+    {
+      "parameters": {
+        "path": "5ae9e0cb-27c3-417e-a664-92407a51b74e",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        40,
+        120
+      ],
+      "id": "7f809db4-4eda-42c5-8c18-58e16d6e9189",
+      "name": "service_webhook",
+      "webhookId": "5ae9e0cb-27c3-417e-a664-92407a51b74e"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $workflow.id }}",
+          "mode": "id"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        400,
+        120
+      ],
+      "id": "ffe954c2-3497-4d4d-a317-cc0eb4902e7b",
+      "name": "get_workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "06b2470a-2ace-4a31-94b6-c74d64d595b5",
+              "name": "workflow_webhook_url",
+              "value": "={{ $('get_base_url').item.json.baseUrl}}{{$json.nodes.find(e => e.name == \"workflow_webhook\").parameters.path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        120
+      ],
+      "id": "5faaac0a-725d-497b-b036-88841645f234",
+      "name": "set_webhook_url"
+    },
+    {
+      "parameters": {
+        "jsCode": "const url = $input.first().json.webhookUrl\nconst baseUrl = url.split('/').slice(0, 4).join('/') + '/'\n\nreturn { baseUrl }"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        120
+      ],
+      "id": "1d3145a4-dc7e-4b39-961b-5b139affee0d",
+      "name": "get_base_url"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\"\n}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        480
+      ],
+      "id": "e515fc7f-82cf-4b85-ae84-a99497e6f063",
+      "name": "Response 500 - error"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"complete\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        300
+      ],
+      "id": "db489c0b-12d6-4952-80e9-b394015d3460",
+      "name": "Response: 200 - success"
+    }
+  ],
+  "connections": {
+    "Wait 3 sec": {
+      "main": [
+        [
+          {
+            "node": "Some worfkflow logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Some worfkflow logic": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Response: 200 - success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response 500 - error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Other response (EDIT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "workflow_webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "service_webhook": {
+      "main": [
+        [
+          {
+            "node": "get_base_url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_workflow": {
+      "main": [
+        [
+          {
+            "node": "set_webhook_url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_webhook_url": {
+      "main": [
+        [
+          {
+            "node": "HTML Response to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_base_url": {
+      "main": [
+        [
+          {
+            "node": "get_workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "3d188d5e6776608372babb5a38f0e018bf857063e63b63b6556840b24e736e3d"
+  }
+}
