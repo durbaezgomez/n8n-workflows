@@ -1,0 +1,247 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "path": "rss-aggregator",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        640
+      ],
+      "id": "c1090392-28ec-44ae-862c-20e513509586",
+      "name": "Webhook Trigger",
+      "webhookId": "rss-aggregator"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "7GLPvyL1FDWlH1W5",
+          "mode": "list",
+          "cachedResultName": "RSS News Sources",
+          "cachedResultUrl": "/projects/zUVJhSnfJB6do5rb/datatables/7GLPvyL1FDWlH1W5"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        640
+      ],
+      "id": "6cd991e5-9fcb-47b2-b3a5-f1cc9cea99eb",
+      "name": "Get RSS Sources"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -192,
+        640
+      ],
+      "id": "4fe85828-6c6f-42d6-bdfd-1e7ec4b22d03",
+      "name": "Loop Over Sources"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -48,
+        816
+      ],
+      "id": "41312fdf-fe93-4249-beaf-9fa1a0c42bc6",
+      "name": "Read RSS Feed"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        32,
+        624
+      ],
+      "id": "7ddf7df7-c92b-4c52-95e5-f2f18732a7dc",
+      "name": "Aggregate Point"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pobierz parametry z query string (opcjonalnie)\nconst limit = $('Webhook Trigger').item.json.query?.limit || 50;\nconst sortBy = $('Webhook Trigger').item.json.query?.sortBy || 'date';\nconst category = $('Webhook Trigger').item.json.query?.category;\n\n// Przetwórz wszystkie artykuły\nconst articles = $input.all().map(item => {\n  const data = item.json;\n  \n  return {\n    title: data.title || 'No title',\n    link: data.link || '',\n    description: data.description || data.contentSnippet || '',\n    content: data.content || data['content:encoded'] || '',\n    pubDate: data.pubDate || data.isoDate || new Date().toISOString(),\n    creator: data.creator || data.author || 'Unknown',\n    categories: data.categories || [],\n    enclosure: data.enclosure || null,\n    guid: data.guid || data.link,\n    source: {\n      name: data.meta?.title || 'Unknown Source',\n      url: data.meta?.link || ''\n    },\n    \n    // Dodatkowe pola\n    summary: (data.description || data.contentSnippet || '').substring(0, 200),\n    hasImage: !!(data.enclosure?.url || data['media:thumbnail']),\n    imageUrl: data.enclosure?.url || data['media:thumbnail']?.[0]?.['$']?.url || null,\n    \n    // Timestamp dla sortowania\n    timestamp: new Date(data.pubDate || data.isoDate || new Date()).getTime()\n  };\n});\n\n// Filtruj po kategorii jeśli podano\nlet filteredArticles = articles;\nif (category) {\n  filteredArticles = articles.filter(article => \n    article.categories.some(cat => \n      cat.toLowerCase().includes(category.toLowerCase())\n    )\n  );\n}\n\n// Sortowanie\nif (sortBy === 'date') {\n  filteredArticles.sort((a, b) => b.timestamp - a.timestamp);\n} else if (sortBy === 'title') {\n  filteredArticles.sort((a, b) => a.title.localeCompare(b.title));\n}\n\n// Limituj wyniki\nconst limitedArticles = filteredArticles.slice(0, parseInt(limit));\n\n// Przygotuj statystyki\nconst stats = {\n  totalArticles: limitedArticles.length,\n  totalFetched: articles.length,\n  sources: [...new Set(limitedArticles.map(a => a.source.name))].length,\n  categories: [...new Set(limitedArticles.flatMap(a => a.categories))],\n  dateRange: {\n    oldest: new Date(Math.min(...limitedArticles.map(a => a.timestamp))).toISOString(),\n    newest: new Date(Math.max(...limitedArticles.map(a => a.timestamp))).toISOString()\n  }\n};\n\nreturn {\n  json: {\n    success: true,\n    timestamp: new Date().toISOString(),\n    stats: stats,\n    articles: limitedArticles\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        624
+      ],
+      "id": "bb365158-e53f-4c44-98a2-3c84e1706878",
+      "name": "Format & Enrich Data"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Total-Articles",
+                "value": "={{ $json.stats.totalArticles }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        624
+      ],
+      "id": "8ae3a716-0e4d-4a0b-88b3-291eef19b900",
+      "name": "Return Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dodaj metadata do każdego artykułu RSS\nconst sourceInfo = $('Loop Over Sources').item.json;\n\nreturn $input.all().map(item => {\n  return {\n    json: {\n      ...item.json,\n      // Dodaj informacje o źródle\n      sourceName: sourceInfo.name || sourceInfo.title,\n      sourceCategory: sourceInfo.category || 'general',\n      sourceLanguage: sourceInfo.language || 'pl',\n      // Timestamp przetworzenia\n      processedAt: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        816
+      ],
+      "id": "e7e3a0f8-dda7-4dae-bb16-192a19f11043",
+      "name": "Enrich RSS Items"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "link",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        256,
+        624
+      ],
+      "id": "e3c69e18-b373-4abb-a45b-8d74d2373a52",
+      "name": "Remove Duplicates1"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get RSS Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get RSS Sources": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Sources": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Point",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Enrich RSS Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Point": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format & Enrich Data": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich RSS Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "Format & Enrich Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "d10eee7cf17c519c776e0429cccb5c5520000274a8b9040ed3ca368305e469f0"
+  }
+}
