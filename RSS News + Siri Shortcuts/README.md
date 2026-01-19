@@ -1,55 +1,55 @@
 # RSS Aggregator Webhook - n8n Workflow
 
-Workflow n8n do agregowania, filtrowania i formatowania wiadomości z wielu kanałów RSS z możliwością zwracania wyników przez webhook API.
+Advanced n8n workflow for aggregating, filtering, and formatting news from multiple RSS feeds with webhook API response capability.
 
-## 🚀 Funkcjonalności
+## 🚀 Features
 
-- **Agregacja wieloźródłowa** - pobieranie artykułów z wielu feedów RSS zapisanych w Data Table
-- **Deduplikacja** - automatyczne usuwanie duplikatów na podstawie linków
-- **Filtrowanie i sortowanie** - po dacie, tytule lub kategorii
-- **Wzbogacanie danych** - dodawanie metadanych, ekstrakcja obrazów, generowanie podsumowań
-- **Webhook API** - zwracanie sformatowanych danych przez endpoint HTTP
-- **Statystyki** - liczba artykułów, źródła, kategorie, zakres dat
+- **Multi-source aggregation** - fetch articles from multiple RSS feeds stored in Data Table
+- **Deduplication** - automatic removal of duplicates based on links
+- **Filtering and sorting** - by date, title, or category
+- **Data enrichment** - add metadata, extract images, generate summaries
+- **Webhook API** - return formatted data via HTTP endpoint
+- **Statistics** - article count, sources, categories, date range
 
-## 📋 Wymagania
+## 📋 Requirements
 
-- n8n (self-hosted lub cloud)
-- Data Table z kolumną `url` zawierającą adresy feedów RSS
-- Opcjonalne kolumny: `name`, `category`, `language`
+- n8n (self-hosted or cloud)
+- Data Table with `url` column containing RSS feed addresses
+- Optional columns: `name`, `category`, `language`
 
-## 🔧 Instalacja
+## 🔧 Installation
 
-1. Zaimportuj workflow do n8n
-2. Skonfiguruj Data Table z i podmień jej ID w scenariuszu.
-3. Dodaj źródła RSS do tabeli
-4. Aktywuj workflow
-5. Skopiuj URL webhooka z node'a "Webhook Trigger"
+1. Import workflow into n8n
+2. Replace Data Table ID with your own ID
+3. Add RSS sources to the table
+4. Activate workflow
+5. Copy webhook URL from "Webhook Trigger" node
 
-## 🌐 Użycie API
+## 🌐 API Usage
 
 ### Endpoint
 ```
 GET /webhook/rss-aggregator
 ```
 
-### Parametry Query (opcjonalne)
+### Query Parameters (optional)
 
-| Parametr | Typ | Domyślnie | Opis |
-|----------|-----|-----------|------|
-| `limit` | integer | 50 | Maksymalna liczba zwracanych artykułów |
-| `sortBy` | string | date | Sortowanie: `date` lub `title` |
-| `category` | string | - | Filtrowanie po kategorii |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 50 | Maximum number of articles to return |
+| `sortBy` | string | date | Sort by: `date` or `title` |
+| `category` | string | - | Filter by category |
 
-### Przykłady
+### Examples
 ```bash
-# Podstawowe wywołanie
+# Basic call
 curl https://your-n8n.com/webhook/rss-aggregator
 
-# Z parametrami
+# With parameters
 curl "https://your-n8n.com/webhook/rss-aggregator?limit=10&sortBy=date&category=tech"
 ```
 
-### Przykładowa odpowiedź
+### Sample Response
 ```json
 {
   "success": true,
@@ -83,7 +83,7 @@ curl "https://your-n8n.com/webhook/rss-aggregator?limit=10&sortBy=date&category=
 }
 ```
 
-## 🏗️ Struktura Workflow
+## 🏗️ Workflow Structure
 ```
 Webhook Trigger → Get RSS Sources → Loop Over Sources → Read RSS Feed 
                                           ↓                    ↓
@@ -96,20 +96,68 @@ Webhook Trigger → Get RSS Sources → Loop Over Sources → Read RSS Feed
                                 Return Response
 ```
 
-## ⚙️ Konfiguracja Data Table
+## ⚙️ Data Table Configuration
 
-Zalecane kolumny w tabeli źródeł RSS:
+Recommended columns in RSS sources table:
 
-| Kolumna | Typ | Wymagane | Opis |
-|---------|-----|----------|------|
-| `url` | string | ✅ | Adres URL feeda RSS |
-| `name` | string | ❌ | Nazwa źródła |
-| `category` | string | ❌ | Kategoria (np. tech, news, sport) |
-| `language` | string | ❌ | Język (np. pl, en) |
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `url` | string | ✅ | RSS feed URL |
+| `name` | string | ❌ | Source name |
+| `category` | string | ❌ | Category (e.g., tech, news, sport) |
+| `language` | string | ❌ | Language (e.g., en, pl, es) |
 
-## 🔒 Bezpieczeństwo
+## 🔒 Security
 
-- Rozważ dodanie autentykacji do webhooka (Header Auth)
-- Ogranicz rate limiting w n8n
-- Waliduj parametry wejściowe
-- Rozważ cache'owanie wyników dla częstych zapytań
+- Consider adding authentication to webhook (Header Auth)
+- Set up rate limiting in n8n
+- Validate input parameters
+- Consider caching results for frequent queries
+
+## 🛠️ Customization
+
+### Add custom fields to articles
+
+Edit the "Format & Enrich Data" code node to include additional fields:
+```javascript
+// Add custom field
+wordCount: (data.content || '').split(' ').length,
+readTime: Math.ceil((data.content || '').split(' ').length / 200)
+```
+
+### Filter by date range
+
+Add to the "Format & Enrich Data" node:
+```javascript
+const daysAgo = $('Webhook Trigger').item.json.query?.days || 7;
+const cutoffDate = Date.now() - (daysAgo * 24 * 60 * 60 * 1000);
+
+filteredArticles = articles.filter(article => 
+  article.timestamp > cutoffDate
+);
+```
+
+## 📊 Use Cases
+
+- News aggregation dashboard
+- Content curation for newsletters
+- Social media automation
+- Market intelligence gathering
+- Blog content discovery
+- Research monitoring
+
+## 🐛 Troubleshooting
+
+**No articles returned:**
+- Check if RSS feeds are accessible
+- Verify Data Table contains valid URLs
+- Check n8n execution logs for errors
+
+**Duplicate articles:**
+- Ensure "Remove Duplicates" node is properly configured
+- Check if `link` field exists in RSS items
+
+**Slow response:**
+- Reduce number of RSS sources
+- Decrease `limit` parameter
+- Implement caching layer
