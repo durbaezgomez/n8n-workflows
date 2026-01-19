@@ -1,0 +1,389 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "acb485b4-6f7e-414c-8c29-5be3097113b8",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2448,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and clean email data for processing\nconst items = $input.all();\n\nreturn items.map(item => {\n  const email = item.json;\n  \n  // Extract sender info\n  const from = email.payload?.headers?.find(h => h.name === 'From')?.value || 'Unknown';\n  const subject = email.payload?.headers?.find(h => h.name === 'Subject')?.value || 'No Subject';\n  const date = email.payload?.headers?.find(h => h.name === 'Date')?.value || '';\n  const to = email.payload?.headers?.find(h => h.name === 'To')?.value || '';\n  \n  // Extract body (handle both plain text and HTML)\n  let body = '';\n  if (email.payload?.body?.data) {\n    body = Buffer.from(email.payload.body.data, 'base64').toString('utf-8');\n  } else if (email.payload?.parts) {\n    const textPart = email.payload.parts.find(part => \n      part.mimeType === 'text/plain' || part.mimeType === 'text/html'\n    );\n    if (textPart?.body?.data) {\n      body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');\n    }\n  }\n  \n  // Clean body - remove HTML tags and extra whitespace\n  const cleanBody = body\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .substring(0, 2000); // Limit to first 2000 chars\n  \n  // Extract domain from sender\n  const emailMatch = from.match(/<(.+?)>/) || from.match(/([^\\s]+@[^\\s]+)/);\n  const senderEmail = emailMatch ? emailMatch[1] : from;\n  const domain = senderEmail.split('@')[1] || 'unknown';\n  \n  return {\n    json: {\n      messageId: email.id,\n      threadId: email.threadId,\n      from: from,\n      senderEmail: senderEmail,\n      domain: domain,\n      to: to,\n      subject: subject,\n      date: date,\n      body: cleanBody,\n      snippet: email.snippet || '',\n      labels: email.labelIds || [],\n      timestamp: new Date().toISOString(),\n      rawEmail: email\n    }\n  };\n});"
+      },
+      "id": "8ec329bf-7ee4-400e-b687-9178cdbbcc78",
+      "name": "Extract Email Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2240,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// GUARDRAIL 1: Pre-filter obvious spam and newsletters\nconst items = $input.all();\n\nconst SPAM_DOMAINS = ['noreply', 'no-reply', 'newsletter', 'marketing', 'unsubscribe'];\nconst SPAM_SUBJECTS = ['unsubscribe', 'click here', 'limited time offer', 'act now', 'buy now'];\n\nreturn items.map(item => {\n  const email = item.json;\n  let isLikelySpam = false;\n  let spamReasons = [];\n  \n  // Check domain\n  const domain = email.domain.toLowerCase();\n  const senderEmail = email.senderEmail.toLowerCase();\n  \n  if (SPAM_DOMAINS.some(spam => senderEmail.includes(spam))) {\n    isLikelySpam = true;\n    spamReasons.push('spam_sender');\n  }\n  \n  // Check subject\n  const subject = email.subject.toLowerCase();\n  if (SPAM_SUBJECTS.some(spam => subject.includes(spam))) {\n    isLikelySpam = true;\n    spamReasons.push('spam_subject');\n  }\n  \n  // Check for unsubscribe links (common in newsletters)\n  if (email.body.toLowerCase().includes('unsubscribe')) {\n    isLikelySpam = true;\n    spamReasons.push('newsletter');\n  }\n  \n  // Gmail labels check\n  if (email.labels.includes('SPAM') || email.labels.includes('CATEGORY_PROMOTIONS')) {\n    isLikelySpam = true;\n    spamReasons.push('gmail_classified');\n  }\n  \n  return {\n    json: {\n      ...email,\n      prefilter: {\n        isLikelySpam: isLikelySpam,\n        spamReasons: spamReasons,\n        passesPrefilter: !isLikelySpam\n      }\n    }\n  };\n});"
+      },
+      "id": "3e7a316c-7fcf-40c5-8f3d-2a0fe5265bcf",
+      "name": "Pre-filter Spam",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2048,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.prefilter.passesPrefilter }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "49b0980e-a258-458a-8792-867addcf864d",
+      "name": "Passes Pre-filter?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "=Classify this email and extract key information. You must respond ONLY with a valid JSON object (no markdown, no preamble, no explanation).\n\n**Email Details:**\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\nDate: {{ $json.date }}\nBody: {{ $json.body }}\n\n**Required JSON Structure:**\n{\n  \"category\": \"urgent|important|sales|newsletter|spam|social|general\",\n  \"priority\": 1-10,\n  \"isImportant\": true/false,\n  \"keyTopics\": [\"topic1\", \"topic2\"],\n  \"requiresAction\": true/false,\n  \"actionItems\": [\"action1\", \"action2\"],\n  \"sentiment\": \"positive|neutral|negative|urgent\",\n  \"summary\": \"brief summary in 1-2 sentences\",\n  \"estimatedResponseTime\": \"immediate|today|this_week|no_response\"\n}\n\n**Classification Guidelines:**\n- category=urgent: time-sensitive matters requiring immediate attention\n- category=important: significant but not time-critical\n- category=sales: sales pitches, cold outreach\n- category=newsletter: bulk marketing emails\n- category=spam: unwanted promotional content\n- category=social: social media notifications\n- priority: 1=lowest, 10=highest urgency\n- isImportant: true if requires attention or response\n- requiresAction: true if specific tasks needed\n- estimatedResponseTime: when response is expected\n\nRespond with ONLY the JSON object, nothing else.",
+        "options": {
+          "systemMessage": "You are an expert email classification assistant. Your sole purpose is to analyze emails and return structured JSON data. Never include explanations, markdown formatting, or any text outside the JSON object. Always return valid, parseable JSON."
+        }
+      },
+      "id": "9f09361b-4bb4-4ffd-923b-1f1ebaf736af",
+      "name": "AI Classification Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1648,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20240620",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "42cbbbe0-31b2-4a3d-89fb-f97954b0fef3",
+      "name": "Claude Sonnet 4.5",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1,
+      "position": [
+        -1648,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI classification and apply importance filters\nconst items = $input.all();\n\nreturn items.map((item, index) => {\n  const originalEmail = $('Extract Email Data').item(index).json;\n  const aiResponse = item.json;\n  \n  let classification = {};\n  \n  try {\n    // Extract JSON from AI response\n    const content = aiResponse.content[0].text;\n    // Remove markdown code blocks if present\n    const jsonStr = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n    classification = JSON.parse(jsonStr);\n  } catch (error) {\n    // Fallback classification if parsing fails\n    classification = {\n      category: 'general',\n      priority: 5,\n      isImportant: false,\n      keyTopics: [],\n      requiresAction: false,\n      actionItems: [],\n      sentiment: 'neutral',\n      summary: 'Unable to classify - parsing error',\n      estimatedResponseTime: 'this_week'\n    };\n  }\n  \n  // GUARDRAIL 2: Calculate importance score\n  const importanceScore = calculateImportanceScore(classification, originalEmail);\n  const passesFilter = shouldNotify(classification, importanceScore);\n  \n  // Determine urgency level\n  const urgencyLevel = getUrgencyLevel(classification, importanceScore);\n  \n  return {\n    json: {\n      ...originalEmail,\n      classification: classification,\n      importanceScore: importanceScore,\n      urgencyLevel: urgencyLevel,\n      passesFilter: passesFilter,\n      processingTime: new Date().toISOString()\n    }\n  };\n});\n\n// Calculate importance score based on multiple factors\nfunction calculateImportanceScore(classification, email) {\n  let score = classification.priority || 0;\n  \n  // Boost for urgent category\n  if (classification.category === 'urgent') score += 3;\n  if (classification.category === 'important') score += 2;\n  \n  // Boost for action required\n  if (classification.requiresAction) score += 2;\n  \n  // Boost for immediate response needed\n  if (classification.estimatedResponseTime === 'immediate') score += 2;\n  if (classification.estimatedResponseTime === 'today') score += 1;\n  \n  // Reduce for newsletters and spam\n  if (classification.category === 'newsletter') score -= 3;\n  if (classification.category === 'spam') score -= 5;\n  if (classification.category === 'social') score -= 1;\n  \n  // Boost for urgent or negative sentiment\n  if (classification.sentiment === 'urgent') score += 2;\n  if (classification.sentiment === 'negative') score += 1;\n  \n  return Math.max(0, Math.min(10, score)); // Clamp between 0-10\n}\n\n// Determine if email should trigger notification\nfunction shouldNotify(classification, importanceScore) {\n  // FILTER 1: Must pass minimum importance threshold\n  if (importanceScore < 6) return false;\n  \n  // FILTER 2: Block spam and newsletters\n  if (['spam', 'newsletter', 'social'].includes(classification.category)) {\n    return false;\n  }\n  \n  // FILTER 3: Must be marked as important OR require action OR be urgent\n  if (classification.isImportant || \n      classification.requiresAction || \n      classification.category === 'urgent' ||\n      classification.estimatedResponseTime === 'immediate') {\n    return true;\n  }\n  \n  return false;\n}\n\n// Get urgency level for Slack formatting\nfunction getUrgencyLevel(classification, score) {\n  if (score >= 9 || classification.category === 'urgent') return 'critical';\n  if (score >= 7) return 'high';\n  if (score >= 5) return 'medium';\n  return 'low';\n}"
+      },
+      "id": "296d2213-d8a6-407a-a6c1-be1bde704734",
+      "name": "Parse & Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.passesFilter }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "3e3e0bb1-ca0d-4df3-b581-49ca4a06a909",
+      "name": "Is Important?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1136,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// GUARDRAIL 3: Rate limiting to prevent notification spam\nconst items = $input.all();\nconst currentTime = Date.now();\n\n// In production, use persistent storage (database, Redis, etc.)\n// For this example, we'll use workflow static data\nconst context = this.getWorkflowStaticData('global');\n\nif (!context.notificationLog) {\n  context.notificationLog = [];\n}\n\nconst RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour\nconst MAX_NOTIFICATIONS_PER_HOUR = 15;\nconst MAX_CRITICAL_PER_HOUR = 25;\n\n// Clean old entries\ncontext.notificationLog = context.notificationLog.filter(\n  log => currentTime - log.timestamp < RATE_LIMIT_WINDOW\n);\n\nreturn items.map(item => {\n  const email = item.json;\n  const isCritical = email.urgencyLevel === 'critical';\n  \n  // Count recent notifications\n  const recentCount = context.notificationLog.length;\n  const recentCritical = context.notificationLog.filter(log => log.critical).length;\n  \n  // Determine if we should send notification\n  let shouldSend = true;\n  let rateLimitReason = '';\n  \n  if (isCritical && recentCritical >= MAX_CRITICAL_PER_HOUR) {\n    shouldSend = false;\n    rateLimitReason = 'Critical notification limit reached';\n  } else if (!isCritical && recentCount >= MAX_NOTIFICATIONS_PER_HOUR) {\n    shouldSend = false;\n    rateLimitReason = 'General notification limit reached';\n  }\n  \n  if (shouldSend) {\n    // Log this notification\n    context.notificationLog.push({\n      timestamp: currentTime,\n      critical: isCritical,\n      messageId: email.messageId\n    });\n  }\n  \n  return {\n    json: {\n      ...email,\n      rateLimit: {\n        shouldSend: shouldSend,\n        reason: rateLimitReason,\n        recentCount: recentCount,\n        recentCritical: recentCritical\n      }\n    }\n  };\n});"
+      },
+      "id": "9513796b-5c61-49c8-b5e6-24d94256fed9",
+      "name": "Rate Limit Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.rateLimit.shouldSend }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "4e10445e-a22a-4ec4-b6e1-ba396a3f2fc8",
+      "name": "Passes Rate Limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format email data for Slack notification\nconst items = $input.all();\n\nreturn items.map(item => {\n  const email = item.json;\n  const classification = email.classification;\n  \n  // Determine emoji and color based on urgency\n  const urgencyConfig = {\n    critical: { emoji: '🚨', color: '#FF0000', label: 'CRITICAL' },\n    high: { emoji: '⚠️', color: '#FFA500', label: 'HIGH PRIORITY' },\n    medium: { emoji: '📧', color: '#2196F3', label: 'IMPORTANT' },\n    low: { emoji: 'ℹ️', color: '#9E9E9E', label: 'NOTICE' }\n  };\n  \n  const config = urgencyConfig[email.urgencyLevel] || urgencyConfig.medium;\n  \n  // Format action items\n  const actionText = classification.actionItems && classification.actionItems.length > 0\n    ? classification.actionItems.map(a => `• ${a}`).join('\\n')\n    : 'No specific actions identified';\n  \n  // Create Gmail link\n  const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${email.messageId}`;\n  \n  // Build Slack message\n  const slackMessage = {\n    text: `${config.emoji} New ${config.label} Email`,\n    blocks: [\n      {\n        type: \"header\",\n        text: {\n          type: \"plain_text\",\n          text: `${config.emoji} ${config.label} Email Alert`\n        }\n      },\n      {\n        type: \"section\",\n        fields: [\n          {\n            type: \"mrkdwn\",\n            text: `*From:*\\n${email.from}`\n          },\n          {\n            type: \"mrkdwn\",\n            text: `*Category:*\\n${classification.category.toUpperCase()}`\n          },\n          {\n            type: \"mrkdwn\",\n            text: `*Priority Score:*\\n${email.importanceScore}/10`\n          },\n          {\n            type: \"mrkdwn\",\n            text: `*Response Time:*\\n${classification.estimatedResponseTime.replace('_', ' ')}`\n          }\n        ]\n      },\n      {\n        type: \"section\",\n        text: {\n          type: \"mrkdwn\",\n          text: `*Subject:*\\n${email.subject}`\n        }\n      },\n      {\n        type: \"section\",\n        text: {\n          type: \"mrkdwn\",\n          text: `*Summary:*\\n${classification.summary}`\n        }\n      },\n      {\n        type: \"section\",\n        text: {\n          type: \"mrkdwn\",\n          text: `*Key Topics:*\\n${classification.keyTopics.join(', ') || 'None identified'}`\n        }\n      },\n      {\n        type: \"section\",\n        text: {\n          type: \"mrkdwn\",\n          text: `*Action Items:*\\n${actionText}`\n        }\n      },\n      {\n        type: \"actions\",\n        elements: [\n          {\n            type: \"button\",\n            text: {\n              type: \"plain_text\",\n              text: \"Open in Gmail\"\n            },\n            url: gmailLink,\n            style: \"primary\"\n          }\n        ]\n      },\n      {\n        type: \"context\",\n        elements: [\n          {\n            type: \"mrkdwn\",\n            text: `Processed: ${new Date(email.processingTime).toLocaleString()} | Sentiment: ${classification.sentiment}`\n          }\n        ]\n      }\n    ],\n    attachments: [\n      {\n        color: config.color,\n        fields: [\n          {\n            title: \"Requires Action\",\n            value: classification.requiresAction ? \"Yes ✓\" : \"No\",\n            short: true\n          },\n          {\n            title: \"Sentiment\",\n            value: classification.sentiment,\n            short: true\n          }\n        ]\n      }\n    ]\n  };\n  \n  return {\n    json: {\n      ...email,\n      slackPayload: slackMessage\n    }\n  };\n});"
+      },
+      "id": "a32feab4-f483-4e21-a8b2-9f3ec2d6a9b0",
+      "name": "Format Slack Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.slackPayload.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "14a2677f-9704-4c31-9a11-d8b8b80e8952",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        512
+      ],
+      "webhookId": "d6a57b04-3b09-4d1b-82a1-29ac163a5c92"
+    },
+    {
+      "parameters": {
+        "operation": "addLabel"
+      },
+      "id": "2eff80e6-2f48-4271-9e1a-d82a953fd83f",
+      "name": "Label as Processed",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        512
+      ],
+      "webhookId": "2e07198a-3c29-4e78-a90f-b7daf580d7ad"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log filtered emails for monitoring\nconst items = $input.all();\n\nreturn items.map(item => {\n  const email = item.json;\n  \n  console.log('Email filtered out:', {\n    from: email.from,\n    subject: email.subject,\n    reason: email.passesFilter ? 'Rate limited' : 'Low importance',\n    score: email.importanceScore,\n    category: email.classification?.category\n  });\n  \n  return {\n    json: {\n      messageId: email.messageId,\n      filtered: true,\n      reason: email.passesFilter ? 'rate_limited' : 'low_importance',\n      timestamp: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "id": "45633514-b9e6-4548-8428-f2105e8657d1",
+      "name": "Log Filtered",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log spam emails for monitoring\nconst items = $input.all();\n\nreturn items.map(item => {\n  const email = item.json;\n  \n  console.log('Email pre-filtered as spam:', {\n    from: email.from,\n    subject: email.subject,\n    reasons: email.prefilter.spamReasons,\n    timestamp: new Date().toISOString()\n  });\n  \n  return {\n    json: {\n      messageId: email.messageId,\n      filtered: true,\n      reason: 'spam_prefilter',\n      spamReasons: email.prefilter.spamReasons\n    }\n  };\n});"
+      },
+      "id": "108bcd42-d215-47eb-913a-7fc9167d4454",
+      "name": "Log Spam",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1680,
+        1104
+      ]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Data": {
+      "main": [
+        [
+          {
+            "node": "Pre-filter Spam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pre-filter Spam": {
+      "main": [
+        [
+          {
+            "node": "Passes Pre-filter?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Passes Pre-filter?": {
+      "main": [
+        [
+          {
+            "node": "AI Classification Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Spam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Classification Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse & Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Score": {
+      "main": [
+        [
+          {
+            "node": "Is Important?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Important?": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit Guard",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Filtered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit Guard": {
+      "main": [
+        [
+          {
+            "node": "Passes Rate Limit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Passes Rate Limit?": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Filtered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Message": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Notification": {
+      "main": [
+        [
+          {
+            "node": "Label as Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d10eee7cf17c519c776e0429cccb5c5520000274a8b9040ed3ca368305e469f0"
+  }
+}
